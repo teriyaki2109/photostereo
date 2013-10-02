@@ -4,7 +4,7 @@
 The current implementation is a beta version I developed for testing.
 It is distributed for fun and education.
 
-It works with the following set of images: [pic.tar.gz] (also available at tonytung.org)
+It works with the following set of images: [pic.tar.gz] (see tonytung.org)
 Please, respect the privacy of the authors and do not re-distribute the materials.
 A similar setup relying on photometric stereo using SVD was presented in [Schindler, 3DPVT08].
 
@@ -14,9 +14,7 @@ The rectangles will serve as light sources and should be placed on each side and
 Capture your face with a webcam while displaying each slide one by one.
 Don't move! (Put a timer on your slides and capture software!)
 
-Binary: (for Linux Debian 32-bit) [photostereo], (for Windows 7) [coming soon]
-Source (C++): [GitHub]
-It requires OpenCV libraries to work.
+Source code written in C++. It requires OpenCV libraries to work.
 
 Place the images in the same folder as the binary file
 Run the program like this: ./photostereo 4
