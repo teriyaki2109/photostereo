@@ -1,12 +1,12 @@
 ** Photometric stereo using light from monitor (e.g., laptop, desktop) **
-** Tony TUNG (c) 2012-2013
+** Tony TUNG (c) 2011-2013
 
 The current implementation is a beta version I developed for testing.
 It is distributed for fun and education.
 
 It works with the following set of images: [pic.tar.gz] (also available at tonytung.org)
 Please, respect the privacy of the authors and do not re-distribute the materials.
-A similar setup relying on photometric stereo using SVD was proposed in [Schindler, 3DPVT08].
+A similar setup relying on photometric stereo using SVD was presented in [Schindler, 3DPVT08].
 
 You can easily make you own set of input images using your own computer screen.
 Create 5-6 presentation slides (e.g., using PowerPoint) containing one white rectangle on black background. 
