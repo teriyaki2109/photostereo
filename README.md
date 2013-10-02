@@ -1,5 +1,5 @@
 ** Photometric stereo using light from monitor (e.g., laptop, desktop) **
-** Tony TUNG (c) 2012
+** Tony TUNG (c) 2012-2013
 
 The current implementation is a beta version I developed for testing.
 It is distributed for fun and education.
