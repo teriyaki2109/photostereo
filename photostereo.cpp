@@ -13,6 +13,8 @@
 
 inline float signof(float a) { return (a == 0.0f) ? 0.0f : (a<0.0f ? -1.0f : 1.0f); }
 
+using namespace std;
+
 void colorMap(unsigned char *rgb,float value,float min,float max)
 {
   float max3=(max-min)/3;
@@ -28,37 +30,75 @@ void colorMap(unsigned char *rgb,float value,float min,float max)
 class photostereo
 {
 	int numImg;
+	vector<IplImage *> tmpImg;
+	int width, height;
+
+	CvMat* U;
+	float *dataU;
+
+	IplImage* Mask;
+	uchar* dataMask;
+
+	IplImage* Z;
+	float *dataZ;
+
+	void computeSVD();
+	void integrate();
+	void outputMesh(char* fName);
 
 	public:
-	photostereo(int aNumImg):numImg(aNumImg) {};
-	void computeSVD() const;
+	photostereo(int aNumImg);
+	~photostereo();
+
 };
 
-
-void photostereo::computeSVD() const
+photostereo::photostereo(int aNumImg)
 {
-	//Input files should be 00.jpg...04.jpg
-	char fileName[10][50];
-	int i,j,k;
-	for(i=0; i<numImg; i++) { sprintf(fileName[i], "%02d.jpg", i); }
+	numImg=aNumImg;
+	tmpImg.reserve(numImg);
 
-	//Load grayscale images
-	IplImage *tmpImg[numImg];
-	for(i=0; i<numImg; i++) { tmpImg[i]=cvLoadImage(fileName[i], 0); }
+	//Input files should be 00.jpg...04.jpg
+	char fileName[10][64];
+	for(int i=0; i<numImg; i++)
+	{
+		sprintf(fileName[i], "%02d.jpg", i);
+		IplImage* aImage=cvLoadImage(fileName[i], 0);
+		tmpImg.push_back(aImage);
+	}
 
 	//Retrieve image dimension
-	int height=tmpImg[0]->height;
-	int width =tmpImg[0]->width;
+	height=tmpImg[0]->height;
+	width =tmpImg[0]->width;
 	printf("Image size: width=%d, height=%d\n", width, height);
 
+	computeSVD();
+	integrate();
+	outputMesh(fileName[0]);
+
+	return;
+}
+
+
+photostereo::~photostereo()
+{
+	for(int i=0; i<numImg; i++) { if(tmpImg[i]) cvReleaseImage(&tmpImg[i]); }
+	if(U) cvReleaseMat(&U);
+	if(Mask) cvReleaseImage(&Mask);
+	if(Z) cvReleaseImage(&Z);
+}
+
+void photostereo::computeSVD()
+{
+	int i,j,k;
+
 	//SVD
+	U = cvCreateMat(height*width, numImg, CV_32FC1);
+	dataU = U->data.fl;
 	CvMat* A = cvCreateMat(height*width, numImg, CV_32FC1);
-	CvMat* U = cvCreateMat(height*width, numImg, CV_32FC1);
 	CvMat* D = cvCreateMat(numImg, numImg, CV_32FC1);
-	CvMat* V = cvCreateMat(numImg, numImg, CV_32FC1);
 	float* data = A->data.fl;
 	float* dataD = D->data.fl;
-	float* dataU = U->data.fl;
+	CvMat* V = cvCreateMat(numImg, numImg, CV_32FC1);
 
 	//Populate A
 	for(k=0; k<numImg; k++) {
@@ -123,11 +163,11 @@ void photostereo::computeSVD() const
 
 	//Memory release
 	for(i=0; i<3; i++) { cvReleaseImage(&(Szxy[i])); }
-	for(i=0; i<numImg; i++) { cvReleaseImage(&(tmpImg[i])); }
+	for(i=0; i<numImg; i++) { cvReleaseImage((IplImage **) &(tmpImg[i])); }
 
 	//Mask computation
-	IplImage* Mask = cvCreateImage(cvSize(width,height), IPL_DEPTH_8U, 1);
-	uchar* dataMask = (uchar*) Mask->imageData;
+	Mask = cvCreateImage(cvSize(width,height), IPL_DEPTH_8U, 1);
+	dataMask = (uchar*) Mask->imageData;
 	int BG[3];
 	BG[0]=255.0f*(dataU[10*width*numImg+10*numImg]-Min)/(Max-Min);
 	BG[1]=255.0f*(dataU[10*width*numImg+10*numImg+1]-Min)/(Max-Min);
@@ -149,8 +189,6 @@ void photostereo::computeSVD() const
 	//Memory release
 	cvReleaseImage(&S);
 
-	//Normalmap integration to recover depthmap
-	//zk+1(i,j) = 1/4 * [ zk(i+1,j) + zk(i-1,j) + zk(i,j+1) + zk(i,j-1) + nx(i-1,j) - nx(i,j) + ny(i,j-1) - ny(i,j)]
 	for(i=0; i<height; i++) {
 	for(j=0; j<width; j++) {
 		rSxyz=2*dataU[i*width*numImg+j*numImg]*dataU[i*width*numImg+j*numImg]+
@@ -162,8 +200,16 @@ void photostereo::computeSVD() const
 		dataU[i*width*numImg+j*numImg+2]=signof(dataU[i*width*numImg+j*numImg+2])*fabs(dataU[i*width*numImg+j*numImg+2])*rSxyz;
 	} }
 	
-	IplImage* Z= cvCreateImage(cvSize(width,height), IPL_DEPTH_32F, 1);
-	float* dataZ = (float*) Z->imageData; cvSetZero(Z);
+	return;
+}
+
+//Normalmap integration to recover depthmap
+//zk+1(i,j) = 1/4 * [ zk(i+1,j) + zk(i-1,j) + zk(i,j+1) + zk(i,j-1) + nx(i-1,j) - nx(i,j) + ny(i,j-1) - ny(i,j)]
+void photostereo::integrate()
+{	
+	int i,j,k;	
+	Z= cvCreateImage(cvSize(width,height), IPL_DEPTH_32F, 1);
+	dataZ = (float*) Z->imageData; cvSetZero(Z);
 
 	k=0;
 	while(k<1000)
@@ -229,6 +275,14 @@ void photostereo::computeSVD() const
 		k++;
 	}
 
+	return;
+}
+
+//Output 3D mesh in off format. fName is used to retrieve the colors
+void photostereo::outputMesh(char* fName)
+{
+	int i,j,k;
+
 	float minZ=0, maxZ=0;
 	for(i=1; i<height-1; i++) {
 	for(j=1; j<width-1; j++) {
@@ -246,7 +300,7 @@ void photostereo::computeSVD() const
 	FILE* pointcloud; pointcloud=fopen("poincloud.off", "w");
 	fprintf(pointcloud, "COFF\n"); fprintf(pointcloud, "%d %d 0\n", width*height, (width-1)*(height-1)*2);
 	float val;
-	IplImage *colorImg=cvLoadImage(fileName[0], 1);
+	IplImage *colorImg=cvLoadImage(fName, 1);
 	uchar* dataColor = (uchar*) colorImg->imageData;
 
 	for(i=0; i<height; i++) {
@@ -272,10 +326,6 @@ void photostereo::computeSVD() const
 		fprintf(pointcloud, "3 %d %d %d\n", i*width+j+1, (i+1)*width+j+1, (i+1)*width+j);		
 	} }
 
-
-	//write triangles
-
-
 	fclose(pointcloud);
 
 	cvSaveImage("depthmap.png", Z);
@@ -283,10 +333,8 @@ void photostereo::computeSVD() const
 	
 	//Memory release
 	cvReleaseImage(&colorImg);
-	cvReleaseMat(&U);
-	cvReleaseImage(&Z);
 	cvReleaseImage(&Zc);
-	cvReleaseImage(&Mask);
+	return;
 }
 
 
@@ -301,7 +349,6 @@ int main (int argc, char **argv)
 	printf("Input: %d images\n", numImg);
 
 	photostereo photos(numImg);
-	photos.computeSVD();
 
 	return 1;
 }
