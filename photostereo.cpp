@@ -31,11 +31,11 @@ class photostereo
 
 	public:
 	photostereo(int aNumImg):numImg(aNumImg) {};
-	void computeSVD();
+	void computeSVD() const;
 };
 
 
-void photostereo::computeSVD()
+void photostereo::computeSVD() const
 {
 	//Input files should be 00.jpg...04.jpg
 	char fileName[10][50];
