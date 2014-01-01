@@ -2,6 +2,7 @@
 // photometricSVD -- Photometric stereo using SVD technique
 // * We assume a Lambertian model, varying lighting conditions, unknown light source directions
 // * One camera view
+// * Require OpenCV library 
 // g++ photostereo.cpp `pkg-config --libs --cflags opencv`
 // ./a.out 4
 
@@ -10,6 +11,7 @@
 #include <highgui.h>
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
 
 inline float signof(float a) { return (a == 0.0f) ? 0.0f : (a<0.0f ? -1.0f : 1.0f); }
 
@@ -69,7 +71,7 @@ photostereo::photostereo(int aNumImg)
 	//Retrieve image dimension
 	height=tmpImg[0]->height;
 	width =tmpImg[0]->width;
-	printf("Image size: width=%d, height=%d\n", width, height);
+	cout << "Image size: width=" << width << " height=" << height << "\n";
 
 	computeSVD();
 	integrate();
@@ -171,7 +173,7 @@ void photostereo::computeSVD()
 	BG[0]=255.0f*(dataU[10*width*numImg+10*numImg]-Min)/(Max-Min);
 	BG[1]=255.0f*(dataU[10*width*numImg+10*numImg+1]-Min)/(Max-Min);
 	BG[2]=255.0f*(dataU[10*width*numImg+10*numImg+2]-Min)/(Max-Min);
-	printf("BG(10,10)=%d,%d,%d\n", BG[0], BG[1], BG[2]);
+	cout << "BG(10,10)=" << BG[0] << "," << BG[1] << "," << BG[2] << "\n";
 
 	for(i=0; i<height; i++) {
 	for(j=0; j<width; j++) {
@@ -289,7 +291,7 @@ void photostereo::outputMesh(char* fName)
 		}
 	} }
 
-	printf("minZ=%f, maxZ=%f\n", minZ, maxZ);
+	cout << "minZ=" << minZ << ", maxZ=" << maxZ << "\n";
 
 	IplImage* Zc= cvCreateImage(cvSize(width,height), IPL_DEPTH_8U, 3);
 	char* dataZc = (char*) Zc->imageData;
@@ -336,13 +338,13 @@ void photostereo::outputMesh(char* fName)
 
 int main (int argc, char **argv)
 {
-	printf("Photostereo v0.1b: 3D reconstruction using monitor as light source - Tony Tung 2013 (c)\n");
-	printf("** Have fun and feel free to improve it :) **\n");
-	printf("tonytung.org\n\n");
+	cout << "Photostereo v0.1b: 3D reconstruction using monitor as light source - Tony Tung 2013 (c)\n";
+	cout << "** Have fun and feel free to improve it :) **\n";
+	cout << "tonytung.org\n\n";
 
-	if(argc != 2) { printf("Usage: ./photostereo 5=[nb of input images]\nPlease try again :)\n"); return(0); }
+	if(argc != 2) { cout << "Usage: ./photostereo 5=[nb of input images]\nPlease try again :)\n"; return(0); }
 	const int numImg=atoi(argv[1]);//argc-1; //Number of images (=number of different light sources)
-	printf("Input: %d images\n", numImg);
+	cout << "Input: " << numImg << "images\n";
 
 	photostereo photos(numImg);
 
