@@ -75,7 +75,6 @@ photostereo::photostereo(int aNumImg)
 	integrate();
 	outputMesh(fileName[0]);
 
-	return;
 }
 
 
@@ -200,7 +199,6 @@ void photostereo::computeSVD()
 		dataU[i*width*numImg+j*numImg+2]=signof(dataU[i*width*numImg+j*numImg+2])*fabs(dataU[i*width*numImg+j*numImg+2])*rSxyz;
 	} }
 	
-	return;
 }
 
 //Normalmap integration to recover depthmap
@@ -275,7 +273,6 @@ void photostereo::integrate()
 		k++;
 	}
 
-	return;
 }
 
 //Output 3D mesh in off format. fName is used to retrieve the colors
@@ -334,7 +331,6 @@ void photostereo::outputMesh(char* fName)
 	//Memory release
 	cvReleaseImage(&colorImg);
 	cvReleaseImage(&Zc);
-	return;
 }
 
 
